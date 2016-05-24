@@ -130,6 +130,10 @@ NSString *const PTPusherConnectionPongEvent        = @"pusher:pong";
   self.socketID = nil;
   socket = nil;
   
+  if (code == SRStatusCodeNormal) {
+    code = 0;  
+  }
+  
   // we always call this last, to prevent a race condition if the delegate calls 'connect'
   [self.delegate pusherConnection:self didDisconnectWithCode:(NSInteger)code reason:(NSString *)reason wasClean:wasClean];
 }
