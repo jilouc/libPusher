@@ -16,6 +16,7 @@
 #import "PTPusherErrors.h"
 #import "PTPusherChannelServerBasedAuthorization.h"
 #import "PTPusherChannel_Private.h"
+#import "SRWebSocket.h"
 
 #define kPUSHER_HOST @"ws.pusherapp.com"
 
@@ -282,10 +283,12 @@ NSURL *PTPusherConnectionURL(NSString *host, NSString *key, NSString *clientID, 
 - (void)subscribeToChannel:(PTPusherChannel *)channel
 {
   if (channel.isPrivate) {
-    [self.channelAuthorizationDelegate pusherChannel:channel requiresAuthorizationForSocketID:self.connection.socketID completionHandler:^(BOOL isAuthorized, NSDictionary *authData, NSError *error) {
-
+    NSString *socketID = self.connection.socketID;
+    [self.channelAuthorizationDelegate pusherChannel:channel requiresAuthorizationForSocketID:socketID completionHandler:^(BOOL isAuthorized, NSDictionary *authData, NSError *error) {
+      
       if (!self.connection.isConnected) return;
-
+      if (self.connection.socketID != socketID) return; // Socket may have changed since the auth request was made
+      
       if (isAuthorized) {
         [channel subscribeWithAuthorization:authData];
       }
@@ -375,7 +378,7 @@ NSURL *PTPusherConnectionURL(NSString *host, NSString *key, NSString *clientID, 
 {
   NSError *error = nil;
 
-  if (errorCode > 0) {
+  if (errorCode > 0 && errorCode != SRStatusCodeNormal && errorCode != SRStatusCodeGoingAway) {
     if (reason == nil) {
         reason = @"Unknown error"; // not sure what could cause this to be nil, but just playing it safe
     }
